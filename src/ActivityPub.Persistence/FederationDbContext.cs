@@ -10,6 +10,7 @@ public sealed class FederationDbContext(DbContextOptions<FederationDbContext> op
 {
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
     public DbSet<LocalActor> LocalActors => Set<LocalActor>();
+    public DbSet<InstanceCustomEmoji> InstanceCustomEmojis => Set<InstanceCustomEmoji>();
     public DbSet<RemoteActor> RemoteActors => Set<RemoteActor>();
     public DbSet<ActorKey> ActorKeys => Set<ActorKey>();
     public DbSet<ActivityRecord> Activities => Set<ActivityRecord>();
@@ -93,6 +94,7 @@ public sealed class FederationDbContext(DbContextOptions<FederationDbContext> op
         modelBuilder.Ignore<DurableWorkItem>();
 
         ConfigureLocalActor(modelBuilder.Entity<LocalActor>());
+        ConfigureInstanceCustomEmoji(modelBuilder.Entity<InstanceCustomEmoji>());
         ConfigureRemoteActor(modelBuilder.Entity<RemoteActor>());
         ConfigureActorKey(modelBuilder.Entity<ActorKey>());
         ConfigureActivity(modelBuilder.Entity<ActivityRecord>());
@@ -428,12 +430,32 @@ public sealed class FederationDbContext(DbContextOptions<FederationDbContext> op
         entity.Property(x => x.Indexable).HasColumnName("indexable");
         entity.Property(x => x.IsSuspended).HasColumnName("is_suspended");
         entity.Property(x => x.ActiveKeyId).HasColumnName("active_key_id");
+        entity.Property(x => x.AvatarMediaId).HasColumnName("avatar_media_id");
+        entity.Property(x => x.BannerMediaId).HasColumnName("banner_media_id");
         entity.Property(x => x.CreatedAt).HasColumnName("created_at");
         entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
         entity.Property(x => x.Version).HasColumnName("version").IsConcurrencyToken();
         entity.HasIndex(x => x.Iri).IsUnique().HasDatabaseName("ux_local_actors_iri");
         entity.HasIndex(x => x.NormalizedUsername).IsUnique().HasDatabaseName("ux_local_actors_username");
         entity.HasOne<ActorKey>().WithMany().HasForeignKey(x => x.ActiveKeyId).OnDelete(DeleteBehavior.Restrict);
+    }
+
+    private static void ConfigureInstanceCustomEmoji(EntityTypeBuilder<InstanceCustomEmoji> entity)
+    {
+        entity.ToTable("instance_custom_emojis").HasKey(x => x.Id);
+        entity.Property(x => x.Id).HasColumnName("id");
+        entity.Property(x => x.Shortcode).HasColumnName("shortcode").HasMaxLength(64);
+        entity.Property(x => x.Name).HasColumnName("name").HasMaxLength(68);
+        entity.Property(x => x.Category).HasColumnName("category").HasMaxLength(64);
+        entity.Property(x => x.Host).HasColumnName("host").HasMaxLength(255);
+        entity.Property(x => x.Url).HasColumnName("url").HasMaxLength(2048);
+        entity.Property(x => x.StaticUrl).HasColumnName("static_url").HasMaxLength(2048);
+        entity.Property(x => x.VisibleInPicker).HasColumnName("visible_in_picker");
+        entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+        entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+        entity.Property(x => x.Version).HasColumnName("version").IsConcurrencyToken();
+        entity.HasIndex(x => x.Shortcode).IsUnique().HasDatabaseName("ux_instance_custom_emojis_shortcode");
+        entity.HasIndex(x => x.Host).HasDatabaseName("ix_instance_custom_emojis_host");
     }
 
     private static void ConfigureRemoteActor(EntityTypeBuilder<RemoteActor> entity)

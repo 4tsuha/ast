@@ -35,6 +35,7 @@ public static class MisskeyEndpoints
         publicApi.MapPost("/users/following", FollowingAsync);
         publicApi.MapPost("/hashtags/search", SearchHashtagsAsync);
         publicApi.MapPost("/hashtags/trend", TrendHashtagsAsync);
+        publicApi.MapPost("/emojis", ListEmojisAsync);
         publicApi.MapPost("/users/notes", UserNotesAsync);
         publicApi.MapPost("/notes/show", ShowNoteAsync);
         publicApi.MapPost("/notes/renotes", RenotesAsync);
@@ -98,6 +99,11 @@ public static class MisskeyEndpoints
         admin.MapPost("/queue/jobs", QueueJobsAsync);
         admin.MapPost("/queue/deliver-delayed", DeliverDelayedAsync);
         admin.MapPost("/queue/inbox-delayed", InboxDelayedAsync);
+        admin.MapPost("/emoji/list", AdminListEmojiAsync);
+        admin.MapPost("/emoji/add", AdminAddEmojiAsync);
+        admin.MapPost("/emoji/update", AdminUpdateEmojiAsync);
+        admin.MapPost("/emoji/delete", AdminDeleteEmojiAsync);
+        admin.MapPost("/emoji/list-remote", AdminListRemoteEmojiAsync);
         authenticated.MapPost("/drive", DriveUsageAsync).RequireAuthorization("misskey.read:drive");
         authenticated.MapPost("/drive/files", ListDriveFilesAsync).RequireAuthorization("misskey.read:drive");
         authenticated.MapPost("/drive/files/create", CreateDriveFileAsync)
@@ -111,6 +117,83 @@ public static class MisskeyEndpoints
         authenticated.MapPost("/drive/folders/delete", DeleteDriveFolderAsync).RequireAuthorization("misskey.write:drive");
         authenticated.MapPost("/drive/folders/update", UpdateDriveFolderAsync).RequireAuthorization("misskey.write:drive");
         return endpoints;
+    }
+
+    private static async Task<IResult> ListEmojisAsync(
+        IInstanceCustomEmojiService emojis,
+        CancellationToken cancellationToken)
+    {
+        var list = await emojis.ListAsync(null, null, cancellationToken).ConfigureAwait(false);
+        Console.WriteLine($"[ListEmojis] count={list.Count} host=null");
+        foreach(var e in list) Console.WriteLine($"[ListEmojis] {e.Shortcode} {e.Url} host={e.Host}");
+        return Results.Json(new { emojis = list.Select(e => new { id = e.Id.ToString(), aliases = Array.Empty<string>(), category = e.Category, host = e.Host, name = e.Shortcode, url = e.Url }) });
+    }
+
+    private static async Task<IResult> AdminListEmojiAsync(
+        IInstanceCustomEmojiService emojis,
+        CancellationToken cancellationToken)
+    {
+        var list = await emojis.ListAsync(null, null, cancellationToken).ConfigureAwait(false);
+        return Results.Json(list.Select(e => new { id = e.Id.ToString(), aliases = Array.Empty<string>(), category = e.Category, host = e.Host, name = e.Shortcode, url = e.Url }));
+    }
+
+    private static async Task<IResult> AdminAddEmojiAsync(
+        HttpContext context,
+        IInstanceCustomEmojiService emojis,
+        CancellationToken cancellationToken)
+    {
+        var body = await ReadBodyAsync(context, cancellationToken).ConfigureAwait(false);
+        string? name = String(body, "name");
+        string? url = String(body, "url");
+        string? category = OptionalString(body, "category");
+        string? host = OptionalString(body, "host");
+        if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(url)) return InvalidRequest();
+        try
+        {
+            var created = await emojis.CreateAsync(new CreateCustomEmojiCommand(name!, name!, category, host, url!), cancellationToken).ConfigureAwait(false);
+            return Results.Json(new { id = created.Id.ToString(), name = created.Shortcode, url = created.Url, category = created.Category, host = created.Host });
+        }
+        catch (DomainException ex)
+        {
+            return Error(StatusCodes.Status400BadRequest, ex.Message, "INVALID_EMOJI", "invalid-emoji");
+        }
+    }
+
+    private static async Task<IResult> AdminUpdateEmojiAsync(
+        HttpContext context,
+        IInstanceCustomEmojiService emojis,
+        CancellationToken cancellationToken)
+    {
+        var body = await ReadBodyAsync(context, cancellationToken).ConfigureAwait(false);
+        string? id = String(body, "id") ?? String(body, "name");
+        string? name = OptionalString(body, "name");
+        string? url = String(body, "url");
+        string? category = OptionalString(body, "category");
+        if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(url)) return InvalidRequest();
+        var updated = await emojis.UpdateAsync(id!, new UpdateCustomEmojiCommand(name!, category, url!, true), cancellationToken).ConfigureAwait(false);
+        if (updated is null) return Results.NotFound();
+        return Results.Json(new { id = updated.Id.ToString(), name = updated.Shortcode, url = updated.Url });
+    }
+
+    private static async Task<IResult> AdminDeleteEmojiAsync(
+        HttpContext context,
+        IInstanceCustomEmojiService emojis,
+        CancellationToken cancellationToken)
+    {
+        var body = await ReadBodyAsync(context, cancellationToken).ConfigureAwait(false);
+        string? id = String(body, "id") ?? String(body, "name");
+        if (string.IsNullOrWhiteSpace(id)) return InvalidRequest();
+        bool ok = await emojis.DeleteAsync(id!, cancellationToken).ConfigureAwait(false);
+        return ok ? Results.Json(new {}) : Results.NotFound();
+    }
+
+    private static async Task<IResult> AdminListRemoteEmojiAsync(
+        IInstanceCustomEmojiService emojis,
+        CancellationToken cancellationToken)
+    {
+        var list = await emojis.ListAsync(null, null, cancellationToken).ConfigureAwait(false);
+        var remote = list.Where(e => e.Host != null).ToList();
+        return Results.Json(remote.Select(e => new { id = e.Id.ToString(), name = e.Shortcode, url = e.Url, host = e.Host }));
     }
 
     private static async Task<IResult> QueueStatsAsync(
@@ -793,6 +876,20 @@ public static class MisskeyEndpoints
         bool? isLocked = OptionalBoolean(body, "isLocked");
         bool? discoverable = OptionalBoolean(body, "discoverable");
         bool? indexable = OptionalBoolean(body, "indexable");
+        string? avatarIdRaw = OptionalString(body, "avatarId");
+        string? bannerIdRaw = OptionalString(body, "bannerId");
+        Guid? avatarId = null;
+        Guid? bannerId = null;
+        if (avatarIdRaw is not null)
+        {
+            if (!Guid.TryParse(avatarIdRaw, out Guid parsedAvatar)) return InvalidRequest();
+            avatarId = parsedAvatar;
+        }
+        if (bannerIdRaw is not null)
+        {
+            if (!Guid.TryParse(bannerIdRaw, out Guid parsedBanner)) return InvalidRequest();
+            bannerId = parsedBanner;
+        }
         if (username is null ||
             name is not null && name.Length > 200 ||
             description is not null && description.Length > 500)
@@ -802,7 +899,7 @@ public static class MisskeyEndpoints
 
         bool updated = await profiles.UpdateAsync(
             username,
-            new ProfileUpdateCommand(name, description, isLocked, discoverable, indexable),
+            new ProfileUpdateCommand(name, description, isLocked, discoverable, indexable, avatarId, bannerId),
             cancellationToken).ConfigureAwait(false);
         if (!updated)
         {
@@ -1473,12 +1570,24 @@ public static class MisskeyEndpoints
             return InvalidRequest();
         }
 
-        object? user = await service.FindUserAsync(
-            String(body, "userId"),
-            String(body, "username"),
-            String(body, "host"),
-            cancellationToken).ConfigureAwait(false);
-        return user is null ? Missing("NO_SUCH_USER", "No such user.") : Results.Json(user);
+        try
+        {
+            object? user = await service.FindUserAsync(
+                String(body, "userId"),
+                String(body, "username"),
+                String(body, "host"),
+                cancellationToken).ConfigureAwait(false);
+            return user is null ? Missing("NO_SUCH_USER", "No such user.") : Results.Json(user);
+        }
+        catch (RemoteAccountResolutionException)
+        {
+            return Error(
+                500,
+                "Failed to resolve remote user.",
+                "FAILED_TO_RESOLVE_REMOTE_USER",
+                "ef7b9be4-9cba-4e6f-ab41-90ed171c7d3c",
+                "server");
+        }
     }
 
     private static Task<IResult> FollowersAsync(
@@ -1843,8 +1952,8 @@ public static class MisskeyEndpoints
     private static IResult InvalidRequest() =>
         Error(400, "Invalid param.", "INVALID_PARAM", "3d81ceae-475f-4600-b2a8-2bc116157532");
 
-    private static IResult Error(int status, string message, string code, string id) =>
-        Results.Json(new MisskeyApiErrorBody(new(message, code, id, "client")), statusCode: status);
+    private static IResult Error(int status, string message, string code, string id, string kind = "client") =>
+        Results.Json(new MisskeyApiErrorBody(new(message, code, id, kind)), statusCode: status);
 
     private static async Task<JsonElement> ReadBodyAsync(HttpContext context, CancellationToken cancellationToken)
     {

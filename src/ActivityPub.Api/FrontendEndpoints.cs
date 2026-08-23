@@ -21,7 +21,7 @@ namespace ActivityPub.Server;
 
 internal static class FrontendEndpoints
 {
-    private const string FrontendHome = "/app/";
+    private const string FrontendHome = "/";
     private const long MaximumAuthenticationFormBytes = 16_384;
     private const string MisskeyPasskeyChallengeCookie = "__Host-activitypub-misskey-passkey-challenge";
     private static readonly JsonSerializerOptions WebJsonOptions = new(JsonSerializerDefaults.Web);
@@ -46,6 +46,7 @@ internal static class FrontendEndpoints
             {
                 enabled = options.Enabled,
                 localAccountsEnabled = localAccounts.Enabled,
+                requiredPasswordLength = localAccounts.RequiredPasswordLength,
                 instanceName = options.PublicBaseUri.IdnHost,
                 publicBaseUri = options.PublicBaseUri.AbsoluteUri.TrimEnd('/'),
                 apiBaseUri = apiBaseUri.AbsoluteUri,
@@ -75,7 +76,7 @@ internal static class FrontendEndpoints
 
         endpoints.MapGet(
                 "/api/frontend/session",
-                (HttpContext context, IAntiforgery antiforgery) => FrontendSession(context, antiforgery))
+                async (HttpContext context, IAntiforgery antiforgery) => await FrontendSession(context, antiforgery).ConfigureAwait(false))
             .WithMetadata(FrontendBrowserSessionMetadata.Instance)
             .RequireRateLimiting("local-api");
 
@@ -1344,7 +1345,7 @@ internal static class FrontendEndpoints
             : StatusCodes.Status400BadRequest;
         return WantsJson(context)
             ? Results.Json(new { status = "failed", errorCode }, statusCode: status)
-            : Results.Redirect("/app/reset-password?resetError=" + Uri.EscapeDataString(errorCode));
+            : Results.Redirect("/reset-password?resetError=" + Uri.EscapeDataString(errorCode));
     }
 
     private static async Task<IResult> RequestEmailConfirmationAsync(
@@ -1396,7 +1397,7 @@ internal static class FrontendEndpoints
                 : StatusCodes.Status400BadRequest;
             return WantsJson(context)
                 ? Results.Json(new { status = "failed", errorCode = "INVALID_OR_EXPIRED_TOKEN" }, statusCode: status)
-                : Results.Redirect("/app/signup-complete?confirmationError=INVALID_OR_EXPIRED_TOKEN");
+                : Results.Redirect("/signup-complete?confirmationError=INVALID_OR_EXPIRED_TOKEN");
         }
 
         bool wantsJson = WantsJson(context);
@@ -1486,13 +1487,14 @@ internal static class FrontendEndpoints
     private static bool WantsJson(HttpContext context) =>
         string.Equals(context.Request.Headers["X-ActivityPub-Frontend"], "1", StringComparison.Ordinal);
 
-    private static IResult FrontendSession(HttpContext context, IAntiforgery antiforgery)
+    private static async Task<IResult> FrontendSession(HttpContext context, IAntiforgery antiforgery)
     {
         AntiforgeryTokenSet tokens = antiforgery.GetAndStoreTokens(context);
         context.Response.Headers.CacheControl = "no-store";
         context.Response.Headers.Vary = "Cookie";
 
-        ClaimsPrincipal principal = context.User;
+        var auth = await context.AuthenticateAsync(OAuthAuthorizationServerExtensions.ExternalSessionScheme).ConfigureAwait(false);
+        ClaimsPrincipal principal = auth.Succeeded && auth.Principal is not null ? auth.Principal : context.User;
         if (principal.Identity?.IsAuthenticated != true)
         {
             return Results.Json(new
@@ -1579,7 +1581,7 @@ internal static class FrontendEndpoints
 
         app.Use(async (context, next) =>
         {
-            if (context.Request.Path.Equals("/app/service-worker.js"))
+            if (context.Request.Path.Equals("/service-worker.js"))
             {
                 context.Response.OnStarting(() =>
                 {

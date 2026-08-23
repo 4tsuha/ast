@@ -21,11 +21,28 @@ test('first-run welcome reproduces welcome.setup and signs in the initial admini
   await expect(page.locator('.rsqzvsbo')).toHaveCount(0);
   await expect(form.locator('input[name="username"]')).toHaveAttribute('pattern', '^[a-zA-Z0-9_]{1,20}$');
   await expect(form.locator('input[name="password"]')).toHaveAttribute('type', 'password');
+  await expect(form.locator('input[name="password"]')).toHaveAttribute('required', '');
+  await expect(form.locator('input[name="password"]')).toHaveAttribute('minlength', '12');
+  await expect(form.locator('input[name="password"]')).toHaveAttribute('maxlength', '1024');
+  await expect(form.locator('input[name="password"]')).toHaveAttribute('autocomplete', 'new-password');
   await expect(form.locator('[data-cy-admin-ok]')).toHaveText('完了');
   expect(await backgroundAlpha(form.locator(':scope > h1'))).toBe(255);
   expect(await backgroundAlpha(form.locator(':scope > div._formRoot'))).toBe(255);
 
   await form.locator('input[name="username"]').fill('initial_admin');
+  await form.locator('input[name="password"]').fill('too-short');
+  await form.locator('[data-cy-admin-ok]').click();
+
+  await expect(form).toBeVisible();
+  expect(await form.locator('input[name="password"]').evaluate(input =>
+    input instanceof HTMLInputElement && input.validationMessage.length > 0)).toBe(true);
+  const rejectedState = await page.request.get('/__test/initial-setup-state');
+  expect(await rejectedState.json()).toEqual({
+    setupRequired: true,
+    setupCalls: 0,
+    lastSetupUsername: null,
+  });
+
   await form.locator('input[name="password"]').fill('test-only-initial-password');
   await form.locator('[data-cy-admin-ok]').click();
 

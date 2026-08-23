@@ -1,0 +1,132 @@
+x-public-test-environment: &public-test-environment
+  ASPNETCORE_ENVIRONMENT: Staging
+  Federation__PublicBaseUri: https://${PUBLIC_TEST_HOST:?set PUBLIC_TEST_HOST}
+  Federation__RequireHttps: "true"
+  Federation__AllowDevelopmentLoopback: "false"
+  Federation__DevelopmentRestrictToAllowedHosts: "false"
+  Authentication__Authority: https://${PUBLIC_TEST_HOST:?set PUBLIC_TEST_HOST}
+  Authentication__RequireHttpsMetadata: "true"
+  OAuth__Enabled: "false"
+  Frontend__Enabled: "true"
+  Frontend__PublicBaseUri: https://${PUBLIC_TEST_HOST:?set PUBLIC_TEST_HOST}
+  Frontend__Authority: https://${PUBLIC_TEST_HOST:?set PUBLIC_TEST_HOST}
+  DataProtection__ApplicationName: activitypub-public-test
+  DataProtection__CertificatePath: /run/secrets/data_protection_certificate
+  DataProtection__CertificatePasswordFile: /run/secrets/data_protection_password
+  LocalAccounts__Enabled: "true"
+  LocalAccounts__RegistrationEnabled: "false"
+  LocalAccounts__RequireConfirmedEmail: "false"
+  LocalAccounts__RequiredPasswordLength: "12"
+  RegistrationProtection__InvitationRequired: "false"
+  RegistrationProtection__CaptchaProvider: None
+  Http__TrustedProxyNetworks__0: 172.30.40.0/24
+  Http__Cloudflare__Enabled: "false"
+  AllowedHosts: ${PUBLIC_TEST_HOST:?set PUBLIC_TEST_HOST}
+  Media__UseServerSideEncryption: "false"
+  Redis__KeyPrefix: activitypub-public-test
+  Redis__DeliveryQueueChannel: activitypub-public-test:delivery-wakeup
+  Redis__InboxQueueChannel: activitypub-public-test:inbox-wakeup
+  Streaming__Redis__Channel: activitypub-public-test:stream-events
+
+services:
+  redis:
+    restart: unless-stopped
+    # The base service drops CAP_CHOWN. Start as the image's redis account so the
+    # entrypoint does not try to chown the read-only/tmpfs data directory.
+    user: "999:1000"
+    tmpfs: !override
+      - /data:size=256m,mode=0700,uid=999,gid=1000
+
+  postgres:
+    restart: unless-stopped
+
+  minio:
+    restart: unless-stopped
+
+  clamav:
+    restart: unless-stopped
+
+  migrate:
+    environment:
+      <<: *public-test-environment
+      # Maintenance commands deliberately do not host the frontend. Keep local-account
+      # endpoints disabled in this one-shot process while API/worker retain their settings.
+      LocalAccounts__Enabled: "false"
+    secrets:
+      - vault_token
+      - data_protection_certificate
+      - data_protection_password
+
+  api:
+    environment:
+      <<: *public-test-environment
+      Workers__InboxEnabled: "false"
+      Workers__DeliveryEnabled: "false"
+      Workers__RawJsonRetentionEnabled: "false"
+      Media__GarbageCollectionEnabled: "false"
+    ports:
+      - 127.0.0.1:${PUBLIC_TEST_HTTP_PORT:-2972}:8080
+    secrets:
+      - vault_token
+      - data_protection_certificate
+      - data_protection_password
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - --fail
+        - --silent
+        - --header
+        - Host:${PUBLIC_TEST_HOST:?set PUBLIC_TEST_HOST}
+        - http://localhost:8080/health/ready
+      interval: 10s
+      timeout: 3s
+      retries: 30
+
+  worker:
+    environment:
+      <<: *public-test-environment
+      Workers__InboxEnabled: "true"
+      Workers__DeliveryEnabled: "true"
+      Workers__RawJsonRetentionEnabled: "true"
+      Media__GarbageCollectionEnabled: "true"
+    secrets:
+      - vault_token
+      - data_protection_certificate
+      - data_protection_password
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - --fail
+        - --silent
+        - --header
+        - Host:${PUBLIC_TEST_HOST:?set PUBLIC_TEST_HOST}
+        - http://localhost:8080/health/ready
+      interval: 10s
+      timeout: 3s
+      retries: 30
+
+  caddy:
+    profiles: [public-test-caddy-disabled]
+    networks:
+      activitypub:
+        ipv4_address: 172.30.40.10
+
+  otel:
+    profiles: [public-test-observability]
+    ports: !override
+      - 127.0.0.1:9465:9464
+
+networks:
+  activitypub:
+    name: activitypub-public-test-backend
+    ipam:
+      config: !override
+        - subnet: 172.30.40.0/24
+
+secrets:
+  data_protection_certificate:
+    file: ${PUBLIC_TEST_DATA_PROTECTION_CERTIFICATE_FILE:?set PUBLIC_TEST_DATA_PROTECTION_CERTIFICATE_FILE}
+  data_protection_password:
+    file: ${PUBLIC_TEST_DATA_PROTECTION_PASSWORD_FILE:?set PUBLIC_TEST_DATA_PROTECTION_PASSWORD_FILE}

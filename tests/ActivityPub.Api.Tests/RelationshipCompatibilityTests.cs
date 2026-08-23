@@ -5,8 +5,11 @@ using System.Text.Json;
 using ActivityPub.Application;
 using ActivityPub.Domain;
 using ActivityPub.Persistence;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace ActivityPub.Api.Tests;
 
@@ -14,6 +17,90 @@ namespace ActivityPub.Api.Tests;
 public sealed class RelationshipCompatibilityTests(ActivityPubApiFixture fixture)
 {
     private readonly HttpClient client = CreateClient(fixture);
+
+    [Fact]
+    public async Task MisskeyUsersShowResolvesAndPersistsAnUncachedRemoteAccount()
+    {
+        string host = "new-" + Guid.NewGuid().ToString("N") + ".example";
+        using WebApplicationFactory<Program> factory = fixture.WithWebHostBuilder(builder =>
+            builder.ConfigureTestServices(services =>
+            {
+                services.RemoveAll<IRemoteAccountResolver>();
+                services.AddScoped<IRemoteAccountResolver, FixtureRemoteAccountResolver>();
+            }));
+        using HttpClient resolvingClient = factory.CreateClient(new()
+        {
+            BaseAddress = new Uri("https://local.example"),
+            AllowAutoRedirect = false
+        });
+        resolvingClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "fixture-alice");
+
+        using HttpResponseMessage response = await resolvingClient.PostAsJsonAsync(
+            "/api/users/show",
+            new { username = "remote_user", host });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        using JsonDocument json = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
+        Assert.Equal("remote_user", json.RootElement.GetProperty("username").GetString());
+        Assert.Equal(host, json.RootElement.GetProperty("host").GetString());
+        string remoteAccountId = json.RootElement.GetProperty("id").GetString()!;
+
+        using HttpRequestMessage followRequest = Post(
+            "/api/following/create",
+            "resolved-follow-" + Guid.NewGuid().ToString("N"),
+            new { userId = remoteAccountId });
+        using HttpResponseMessage followResponse = await resolvingClient.SendAsync(followRequest);
+        Assert.Equal(HttpStatusCode.OK, followResponse.StatusCode);
+
+        await using AsyncServiceScope scope = fixture.Services.CreateAsyncScope();
+        IDbContextFactory<FederationDbContext> contextFactory = scope.ServiceProvider
+            .GetRequiredService<IDbContextFactory<FederationDbContext>>();
+        await using FederationDbContext db = await contextFactory.CreateDbContextAsync();
+        string actorIri = $"https://{host}/users/remote_user";
+        Assert.True(await db.RemoteActors.AnyAsync(actor =>
+            actor.Iri == actorIri && actor.PreferredUsername == "remote_user"));
+        FollowRelation relation = await db.FollowRelations.SingleAsync(candidate =>
+            candidate.FollowerIri == "https://local.example/users/alice" &&
+            candidate.FollowedIri == actorIri);
+        Assert.Equal(FollowState.Pending, relation.State);
+        ActivityRecord followActivity = await db.Activities.SingleAsync(candidate =>
+            candidate.Iri == relation.FollowActivityIri);
+        Delivery delivery = await db.Deliveries.SingleAsync(candidate =>
+            candidate.ActivityId == followActivity.Id);
+        DeliveryTarget target = await db.DeliveryTargets.SingleAsync(candidate =>
+            candidate.DeliveryId == delivery.Id);
+        Assert.Equal("Follow", followActivity.Type);
+        Assert.Equal(actorIri + "/inbox", delivery.EndpointIri);
+        Assert.Equal("https://local.example/users/alice", delivery.ActorIri);
+        Assert.Equal(actorIri, target.ActorIri);
+    }
+
+    [Fact]
+    public async Task MisskeyUsersShowReturnsTheDolphinServerErrorWhenRemoteResolutionFails()
+    {
+        using WebApplicationFactory<Program> factory = fixture.WithWebHostBuilder(builder =>
+            builder.ConfigureTestServices(services =>
+            {
+                services.RemoveAll<IRemoteAccountResolver>();
+                services.AddScoped<IRemoteAccountResolver, FailingRemoteAccountResolver>();
+            }));
+        using HttpClient resolvingClient = factory.CreateClient(new()
+        {
+            BaseAddress = new Uri("https://local.example"),
+            AllowAutoRedirect = false
+        });
+
+        using HttpResponseMessage response = await resolvingClient.PostAsJsonAsync(
+            "/api/users/show",
+            new { username = "unavailable", host = "unavailable.example" });
+
+        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+        using JsonDocument json = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
+        JsonElement error = json.RootElement.GetProperty("error");
+        Assert.Equal("FAILED_TO_RESOLVE_REMOTE_USER", error.GetProperty("code").GetString());
+        Assert.Equal("ef7b9be4-9cba-4e6f-ab41-90ed171c7d3c", error.GetProperty("id").GetString());
+        Assert.Equal("server", error.GetProperty("kind").GetString());
+    }
 
     [Fact]
     public async Task MisskeyUsersSearchUsesTheDolphinPrefixContractAndViewerSafeUserProjection()
@@ -339,5 +426,39 @@ public sealed class RelationshipCompatibilityTests(ActivityPubApiFixture fixture
         });
         result.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "fixture-alice");
         return result;
+    }
+
+    private sealed class FixtureRemoteAccountResolver(IRemoteActorDirectory directory) : IRemoteAccountResolver
+    {
+        public async Task<string> ResolveAsync(
+            string username,
+            string host,
+            CancellationToken cancellationToken)
+        {
+            string actorIri = $"https://{host}/users/{username}";
+            DateTimeOffset now = DateTimeOffset.UtcNow;
+            await directory.SaveAsync(
+                new(
+                    actorIri,
+                    "Person",
+                    username,
+                    $"{{\"id\":\"{actorIri}\",\"type\":\"Person\",\"preferredUsername\":\"{username}\"}}",
+                    actorIri + "/inbox",
+                    $"https://{host}/inbox",
+                    null,
+                    null,
+                    now),
+                cancellationToken);
+            return actorIri;
+        }
+    }
+
+    private sealed class FailingRemoteAccountResolver : IRemoteAccountResolver
+    {
+        public Task<string> ResolveAsync(
+            string username,
+            string host,
+            CancellationToken cancellationToken) =>
+            Task.FromException<string>(new RemoteAccountResolutionException("fixture failure"));
     }
 }

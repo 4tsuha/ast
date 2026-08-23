@@ -22,8 +22,9 @@ test('authenticated navbar preserves pinned desktop DOM, safe popups, compose, a
   await expect(navbar.locator(':scope > .body > .top > .instance > img.icon')).toHaveAttribute('src', '/static-assets/favicon.png');
   await expect(navbar.locator(':scope > .body > .middle > a.index > .text')).toHaveText('タイムライン');
   await expect(navbar.locator(':scope > .body > .middle > .drive, :scope > .body > .middle > .settings')).toHaveCount(0);
-  await expect(navbar.locator(':scope > .body > .middle > a.notifications')).toHaveAttribute('href', '/my/notifications');
-  await expect(navbar.locator(':scope > .body > .middle > a.announcements')).toHaveAttribute('href', '/announcements');
+  await expect(navbar.locator(':scope > .body > .middle > a.notifications')).toHaveAttribute('href', 'my/notifications');
+  await expect(navbar.locator(':scope > .body > .middle > a.announcements')).toHaveAttribute('href', 'announcements');
+  await expect(navbar.locator(':scope > .body > .middle > a[href="admin"], :scope > .body > .middle > a[href="settings"]')).toHaveCount(0);
   await expect(navbar.locator(':scope > .body > .bottom > .account > .avatar img.inner')).toHaveAttribute('src', '/static-assets/favicon.png');
   await expect(navbar.locator(':scope > .body > .bottom > .account > .mk-acct.text')).toContainText('@alice');
 
@@ -48,8 +49,11 @@ test('authenticated navbar preserves pinned desktop DOM, safe popups, compose, a
 
   await navbar.locator(':scope > .body > .middle > button').click();
   const launchPad = page.locator('body > .qzhlnise.popup .szkkfdyq > .main');
-  await expect(launchPad.locator(':scope > button')).toHaveCount(1);
-  await expect(launchPad.locator(':scope > button')).toContainText('リロード');
+  await expect(launchPad.locator(':scope > button')).toHaveCount(2);
+  await expect(launchPad.locator(':scope > button').filter({ hasText: 'リロード' })).toHaveCount(1);
+  await expect(launchPad.locator(':scope > button').filter({ hasText: '照会' })).toHaveCount(1);
+  await expect(launchPad.locator(':scope > a[href="admin"]')).toContainText('コントロールパネル');
+  await expect(launchPad.locator(':scope > a[href="settings"]')).toContainText('設定');
   await expect(page.locator('body > .qzhlnise.popup > .content')).toHaveAttribute('style', /left:/);
   await page.keyboard.press('Escape');
   await expect(launchPad).toHaveCount(0);
@@ -67,8 +71,9 @@ test('authenticated navbar preserves pinned desktop DOM, safe popups, compose, a
   await expect(mobileNavbar).toHaveCount(1);
   await expect(mobileNavbar.locator(':scope > .body > .top > .instance > img.icon')).toHaveAttribute('src', '/static-assets/favicon.png');
   await expect(mobileNavbar.locator(':scope > .body > .middle > .drive, :scope > .body > .middle > .settings')).toHaveCount(0);
-  await expect(mobileNavbar.locator(':scope > .body > .middle > a.notifications')).toHaveAttribute('href', '/my/notifications');
-  await expect(mobileNavbar.locator(':scope > .body > .middle > a.announcements')).toHaveAttribute('href', '/announcements');
+  await expect(mobileNavbar.locator(':scope > .body > .middle > a.notifications')).toHaveAttribute('href', 'my/notifications');
+  await expect(mobileNavbar.locator(':scope > .body > .middle > a.announcements')).toHaveAttribute('href', 'announcements');
+  await expect(mobileNavbar.locator(':scope > .body > .middle > a[href="admin"], :scope > .body > .middle > a[href="settings"]')).toHaveCount(0);
   await expect(mobileNavbar.locator(':scope > .body > .bottom > .account > .mk-acct.text')).toContainText('@alice');
   const mobileNavbarBackgroundAlpha = await mobileNavbar.evaluate(element => {
     const canvas = document.createElement('canvas');
@@ -81,6 +86,16 @@ test('authenticated navbar preserves pinned desktop DOM, safe popups, compose, a
   });
   expect(mobileNavbarBackgroundAlpha, 'mobile drawer background must not be transparent').toBe(255);
 
+  await mobileNavbar.locator(':scope > .body > .middle > button').click();
+  const mobileLaunchPad = page.locator('body > .qzhlnise .szkkfdyq > .main');
+  await expect(mobileLaunchPad.locator(':scope > button').filter({ hasText: '照会' })).toHaveCount(1);
+  await expect(mobileLaunchPad.locator(':scope > a[href="admin"]')).toContainText('コントロールパネル');
+  await expect(mobileLaunchPad.locator(':scope > a[href="settings"]')).toContainText('設定');
+  await page.keyboard.press('Escape');
+  await expect(mobileLaunchPad).toHaveCount(0);
+
+  await page.locator('.dkgtipfy > .buttons > .nav').click();
+  await expect(mobileNavbar).toHaveCount(1);
   await mobileNavbar.locator(':scope > .body > .bottom > .account').click();
   popup = page.locator('body > .qzhlnise.popup .rrevdjwt');
   await expect(popup.locator(':scope > button.item')).toHaveCount(2);

@@ -30,6 +30,8 @@ public sealed partial class LocalActor : Entity
     public bool Indexable { get; private set; }
     public bool IsSuspended { get; private set; }
     public Guid? ActiveKeyId { get; private set; }
+    public Guid? AvatarMediaId { get; private set; }
+    public Guid? BannerMediaId { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset UpdatedAt { get; private set; }
     public long Version { get; private set; }
@@ -50,6 +52,20 @@ public sealed partial class LocalActor : Entity
         ManuallyApprovesFollowers = manuallyApprovesFollowers;
         Discoverable = discoverable;
         Indexable = indexable;
+        Touch(now);
+    }
+
+    public void SetAvatar(Guid? mediaId, DateTimeOffset now)
+    {
+        if (mediaId == Guid.Empty) throw new DomainException("Avatar media identifier cannot be empty.");
+        AvatarMediaId = mediaId;
+        Touch(now);
+    }
+
+    public void SetBanner(Guid? mediaId, DateTimeOffset now)
+    {
+        if (mediaId == Guid.Empty) throw new DomainException("Banner media identifier cannot be empty.");
+        BannerMediaId = mediaId;
         Touch(now);
     }
 

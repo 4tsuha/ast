@@ -17,13 +17,16 @@ public sealed record MisskeyRegistrationPolicy(
 public sealed class MisskeyMetadataService(
     FederationOptions options,
     MisskeyRegistrationPolicy registration,
-    IInitialSetupState initialSetup)
+    IInitialSetupState initialSetup,
+    IInstanceCustomEmojiService emojis)
 {
     private static readonly string[] SupportedLanguages = ["ja-JP", "en-US"];
 
     public async Task<MisskeyInstanceMetadata> GetMetadataAsync(CancellationToken cancellationToken)
     {
         bool requireSetup = await initialSetup.IsRequiredAsync(cancellationToken).ConfigureAwait(false);
+        var emojiViews = await emojis.ListAsync(null, null, cancellationToken).ConfigureAwait(false);
+        var emojiObjects = emojiViews.Select(e => (object)new { id = e.Id.ToString(), aliases = Array.Empty<string>(), category = e.Category, host = e.Host, name = e.Shortcode, url = e.Url }).ToList();
         return new()
         {
             Version = "12.119.2-activitypub-dotnet",
@@ -62,7 +65,7 @@ public sealed class MisskeyMetadataService(
             ThemeColor = "#86b300",
             IconUrl = "/static-assets/favicon.png",
             MaxNoteTextLength = 5_000,
-            Emojis = [],
+            Emojis = emojiObjects,
             Ads = [],
             RequireSetup = requireSetup
         };

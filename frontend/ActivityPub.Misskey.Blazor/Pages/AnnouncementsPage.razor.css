@@ -1,9 +1,0 @@
-.ruryvtyk > .announcement:not(:last-child) {
-    margin-bottom: var(--margin);
-}
-
-.ruryvtyk > .announcement > ._content > img {
-    display: block;
-    max-height: 300px;
-    max-width: 100%;
-}

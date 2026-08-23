@@ -33,6 +33,22 @@ public sealed class ProfileUpdateService(
             command.Discoverable ?? actor.Discoverable,
             command.Indexable ?? actor.Indexable,
             DateTimeOffset.UtcNow);
+
+        if (command.AvatarId is not null)
+        {
+            var avatarMedia = await db.Set<MediaResource>().AsNoTracking()
+                .SingleOrDefaultAsync(m => m.Id == command.AvatarId.Value, cancellationToken).ConfigureAwait(false);
+            if (avatarMedia is null) throw new DomainException("Avatar media not found.");
+            actor.SetAvatar(command.AvatarId, DateTimeOffset.UtcNow);
+        }
+        if (command.BannerId is not null)
+        {
+            var bannerMedia = await db.Set<MediaResource>().AsNoTracking()
+                .SingleOrDefaultAsync(m => m.Id == command.BannerId.Value, cancellationToken).ConfigureAwait(false);
+            if (bannerMedia is null) throw new DomainException("Banner media not found.");
+            actor.SetBanner(command.BannerId, DateTimeOffset.UtcNow);
+        }
+
         await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return true;
     }

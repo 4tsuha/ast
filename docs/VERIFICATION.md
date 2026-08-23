@@ -16,6 +16,7 @@
 | Cloudflare Turnstile／R2／Proxy | 自動試験成功、live未試験 | Turnstileのhostname／action／cdata／idempotent retry／fail-closed、v12 signup DOM、R2 endpoint／upload契約、`CF-Connecting-IP`のtrusted peer／spoof防止をfixtureとChromiumで確認。実Turnstileおよび実R2 credentialによるlive通信は未実施 |
 | fediverse-pasture composition | 成功 | compose commit `fecd3977`、Mastodon `v4.6.2`、Misskey `2026.6.0`、Pleroma `v2.10.0`を固定。internal `172.29.0.0/24`、実Fediverse向けrouteなし、API/Workerの完全一致host allow-listを確認 |
 | fediverse-pasture実instance相互運用 | 一部成功、一部失敗 | 双方向Discovery/Follow/Accept、公開Create、Announce、Mastodon Like/Undo、Misskey reaction変更/Undo、Pleroma EmojiReact/Undo、mediaを実測。全三値表は`artifacts/interop/pasture/20260803T061125Z/interop-matrix.md` |
+| public exekey.net Discovery | 成功（live Follow/Acceptは未試験） | 2026-08-14に`testtest.exekey.net`からyojo-art 1.9.0の`exekey.net`へWebFingerとActor取得を実行。未キャッシュActor、Inbox、sharedInboxをPostgreSQLへ保存し、再検索後もActor 1件／endpoint 2件で重複なし。検索からFollow Activity／Delivery生成まではPostgreSQL API統合試験で確認。証拠は`artifacts/interop/public/20260814T025654Z/result.md` |
 | remote media実測 | 成功 | Mastodon画像を.NETへ配送し、初回proxy後にS3-backed cache 1件、2回目も同じmedia ID/SHA-256。peer Delete後はcache rowが残っても404 |
 | private authorization実instance | 成功 | follower署名Object/media GETは200、instance actor署名は403/404、未署名media 404、public timeline/featured/outboxと未認証REST/API projectionに混入なし、本文markerのAPI/Worker log hit 0 |
 | non-public peer projection | 一部成功、一部失敗 | Followers-onlyはMastodon/Pleromaで永続化、Misskeyは202後に未保存。Mentioned-onlyはMastodon/Misskeyで永続化、PleromaはMention tag付き200後に未保存 |

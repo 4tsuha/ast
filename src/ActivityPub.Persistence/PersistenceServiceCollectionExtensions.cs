@@ -77,6 +77,7 @@ public static class PersistenceServiceCollectionExtensions
         services.AddScoped<ISchemaCompatibilityStore, SchemaCompatibilityStore>();
         services.AddScoped<IExternalEntityIdService, ExternalEntityIdService>();
         services.AddScoped<IClientApiQueryService, ClientApiQueryService>();
+        services.AddScoped<IInstanceCustomEmojiService, InstanceCustomEmojiService>();
         services.AddScoped<IRemoteInstanceQueryService, RemoteInstanceQueryService>();
         services.AddScoped<IClientApiCommandService, ClientApiCommandService>();
         services.AddScoped<IMisskeyAuthenticationService, MisskeyAuthenticationService>();

@@ -14,7 +14,8 @@ public sealed partial class MisskeyQueryService(
     IClientNotificationService notifications,
     IExternalEntityIdService externalIds,
     IHashtagRepository hashtags,
-    FederationOptions federation)
+    FederationOptions federation,
+    IRemoteAccountResolver remoteAccounts)
 {
     public Task<string?> FindViewerActorIriAsync(string username, CancellationToken cancellationToken) =>
         query.FindLocalActorIriAsync(username, cancellationToken);
@@ -171,6 +172,12 @@ public sealed partial class MisskeyQueryService(
         {
             string lookup = string.IsNullOrWhiteSpace(host) ? username : username + "@" + host;
             account = await query.FindAccountByLookupAsync(lookup, federation.PublicBaseUri.IdnHost, cancellationToken).ConfigureAwait(false);
+            if (account is null && !string.IsNullOrWhiteSpace(host) &&
+                !string.Equals(host.Trim().TrimEnd('.'), federation.PublicBaseUri.IdnHost, StringComparison.OrdinalIgnoreCase))
+            {
+                string actorIri = await remoteAccounts.ResolveAsync(username, host, cancellationToken).ConfigureAwait(false);
+                account = await query.FindAccountByIriAsync(actorIri, cancellationToken).ConfigureAwait(false);
+            }
         }
 
         return account is null ? null : await MapAccountAsync(account, detailed: true, isMe: false, cancellationToken).ConfigureAwait(false);

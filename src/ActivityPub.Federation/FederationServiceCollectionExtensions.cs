@@ -38,6 +38,7 @@ public static class FederationServiceCollectionExtensions
             services.AddScoped<IOutboundTransport, ActivityPubOutboundTransport>();
         }
         services.AddScoped<IRemoteRecipientResolver, RemoteRecipientResolver>();
+        services.AddScoped<IRemoteAccountResolver, RemoteAccountResolver>();
         services.AddScoped<IClientOutboxService, ClientOutboxService>();
         services.AddSingleton<IIncomingHtmlSanitizer, IncomingHtmlSanitizer>();
         services.AddScoped<IUrlPreviewFetcher, UrlPreviewFetcher>();

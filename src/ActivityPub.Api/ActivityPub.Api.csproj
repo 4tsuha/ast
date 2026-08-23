@@ -2,19 +2,17 @@
   <PropertyGroup>
     <AssemblyName>ActivityPub.Server</AssemblyName>
     <RootNamespace>ActivityPub.Server</RootNamespace>
-    <!-- The root Razor component lives in an RCL, so the Web SDK cannot infer this from local .razor files. -->
-    <RequiresAspNetWebAssets>true</RequiresAspNetWebAssets>
   </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="ActivityPub.Api.Tests" />
     <PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <ProjectReference Include="../ActivityPub.Application/ActivityPub.Application.csproj" />
     <ProjectReference Include="../ActivityPub.Domain/ActivityPub.Domain.csproj" />
     <ProjectReference Include="../ActivityPub.Federation/ActivityPub.Federation.csproj" />
-    <ProjectReference Include="../../frontend/ActivityPub.Misskey.Blazor/ActivityPub.Misskey.Blazor.csproj" />
-    <ProjectReference Include="../../frontend/ActivityPub.Misskey.Blazor.Client/ActivityPub.Misskey.Blazor.Client.csproj"
-                      ReferenceOutputAssembly="false" />
     <ProjectReference Include="../ActivityPub.Identity/ActivityPub.Identity.csproj" />
     <ProjectReference Include="../ActivityPub.Media/ActivityPub.Media.csproj" />
     <ProjectReference Include="../ActivityPub.MastodonApi/ActivityPub.MastodonApi.csproj" />
@@ -23,15 +21,5 @@
     <ProjectReference Include="../ActivityPub.Operations/ActivityPub.Operations.csproj" />
     <ProjectReference Include="../ActivityPub.Persistence/ActivityPub.Persistence.csproj" />
     <ProjectReference Include="../ActivityPub.Workers/ActivityPub.Workers.csproj" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="../../frontend/misskey-v12/public/static-assets/**/*"
-             Link="wwwroot/static-assets/%(RecursiveDir)%(Filename)%(Extension)"
-             CopyToOutputDirectory="PreserveNewest"
-             CopyToPublishDirectory="PreserveNewest" />
-    <Content Include="../../frontend/misskey-v12/public/client-assets/**/*"
-             Link="wwwroot/client-assets/%(RecursiveDir)%(Filename)%(Extension)"
-             CopyToOutputDirectory="PreserveNewest"
-             CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

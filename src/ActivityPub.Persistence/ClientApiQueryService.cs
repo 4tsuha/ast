@@ -1105,6 +1105,18 @@ public sealed class ClientApiQueryService(
         long following = await db.FollowRelations.LongCountAsync(x => x.FollowerIri == actor.Iri && x.State == FollowState.Accepted, cancellationToken).ConfigureAwait(false);
         long statuses = await db.Objects.LongCountAsync(x => x.OwnerIri == actor.Iri && !x.IsDeleted, cancellationToken).ConfigureAwait(false);
         DateTimeOffset? last = await db.Objects.Where(x => x.OwnerIri == actor.Iri && !x.IsDeleted).MaxAsync(x => (DateTimeOffset?)x.PublishedAt, cancellationToken).ConfigureAwait(false);
+        string avatarUrl = string.Empty;
+        string headerUrl = string.Empty;
+        if (actor.AvatarMediaId is Guid avatarId)
+        {
+            var avatarMedia = await db.Set<MediaResource>().AsNoTracking().SingleOrDefaultAsync(m => m.Id == avatarId, cancellationToken).ConfigureAwait(false);
+            if (avatarMedia is not null) avatarUrl = $"https://{localDomain}/media/{avatarId:N}";
+        }
+        if (actor.BannerMediaId is Guid bannerId)
+        {
+            var bannerMedia = await db.Set<MediaResource>().AsNoTracking().SingleOrDefaultAsync(m => m.Id == bannerId, cancellationToken).ConfigureAwait(false);
+            if (bannerMedia is not null) headerUrl = $"https://{localDomain}/media/{bannerId:N}";
+        }
         return new ClientAccountView(
             Id: actor.Id,
             Username: actor.Username,
@@ -1118,8 +1130,8 @@ public sealed class ClientApiQueryService(
             SummaryHtml: actor.SummaryHtml,
             Url: actor.Iri,
             Iri: actor.Iri,
-            AvatarUrl: string.Empty,
-            HeaderUrl: string.Empty,
+            AvatarUrl: avatarUrl,
+            HeaderUrl: headerUrl,
             FollowersCount: followers,
             FollowingCount: following,
             PostsCount: statuses,

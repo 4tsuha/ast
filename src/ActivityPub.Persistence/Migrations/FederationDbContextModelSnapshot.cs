@@ -18,7 +18,7 @@ namespace ActivityPub.Persistence.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("activitypub")
-                .HasAnnotation("ProductVersion", "10.0.10")
+                .HasAnnotation("ProductVersion", "10.0.11")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -1636,6 +1636,75 @@ namespace ActivityPub.Persistence.Migrations
                     b.ToTable("inbox_item_recipients", "activitypub");
                 });
 
+            modelBuilder.Entity("ActivityPub.Domain.InstanceCustomEmoji", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Category")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("category");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Host")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("host");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(68)
+                        .HasColumnType("character varying(68)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Shortcode")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("shortcode");
+
+                    b.Property<string>("StaticUrl")
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)")
+                        .HasColumnName("static_url");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)")
+                        .HasColumnName("url");
+
+                    b.Property<long>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint")
+                        .HasColumnName("version");
+
+                    b.Property<bool>("VisibleInPicker")
+                        .HasColumnType("boolean")
+                        .HasColumnName("visible_in_picker");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Host")
+                        .HasDatabaseName("ix_instance_custom_emojis_host");
+
+                    b.HasIndex("Shortcode")
+                        .IsUnique()
+                        .HasDatabaseName("ux_instance_custom_emojis_shortcode");
+
+                    b.ToTable("instance_custom_emojis", "activitypub");
+                });
+
             modelBuilder.Entity("ActivityPub.Domain.LegalHold", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1781,6 +1850,14 @@ namespace ActivityPub.Persistence.Migrations
                     b.Property<Guid?>("ActiveKeyId")
                         .HasColumnType("uuid")
                         .HasColumnName("active_key_id");
+
+                    b.Property<Guid?>("AvatarMediaId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("avatar_media_id");
+
+                    b.Property<Guid?>("BannerMediaId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("banner_media_id");
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")

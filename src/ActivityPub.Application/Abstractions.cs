@@ -175,7 +175,9 @@ public sealed record ProfileUpdateCommand(
     string? Description,
     bool? IsLocked,
     bool? Discoverable,
-    bool? Indexable);
+    bool? Indexable,
+    Guid? AvatarId = null,
+    Guid? BannerId = null);
 
 public interface IProfileUpdateService
 {
@@ -337,6 +339,24 @@ public interface IRemoteRecipientResolver
         CancellationToken cancellationToken) =>
         ResolveAsync(localActorIri, audience, cancellationToken);
     Task<RemoteActorEndpoint> RediscoverAsync(string actorIri, CancellationToken cancellationToken);
+}
+
+public interface IRemoteAccountResolver
+{
+    Task<string> ResolveAsync(string username, string host, CancellationToken cancellationToken);
+}
+
+public sealed class RemoteAccountResolutionException : Exception
+{
+    public RemoteAccountResolutionException(string message)
+        : base(message)
+    {
+    }
+
+    public RemoteAccountResolutionException(string message, Exception innerException)
+        : base(message, innerException)
+    {
+    }
 }
 
 public interface IActorMoveValidator

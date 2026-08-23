@@ -307,26 +307,11 @@ if (federationOptions.RequireHttps)
 }
 if (hostFrontend)
 {
-    app.UseBlazorFrameworkFiles("/app");
+    // React SPA served from wwwroot (domain root) — no Blazor
 }
 app.UseFrontendAssets(frontendOptions, registrationProtectionOptions);
-if (hostFrontend)
-{
-    // The standalone client is rooted at /app/, so relative RCL module and stylesheet
-    // references resolve to /app/_content/*. Static web assets are canonically exposed
-    // at /_content/*; rewrite only that application-scoped alias before endpoint routing.
-    app.Use(async (context, next) =>
-    {
-        if (context.Request.Path.StartsWithSegments(
-                "/app/_content",
-                out PathString remaining))
-        {
-            context.Request.Path = new PathString("/_content").Add(remaining);
-        }
+// React: no _content rewrite needed (static at /)
 
-        await next(context).ConfigureAwait(false);
-    });
-}
 
 var webSocketOptions = new WebSocketOptions
 {
@@ -419,9 +404,8 @@ app.MapFrontendEndpoints(
     builder.Environment.IsDevelopment());
 if (hostFrontend)
 {
-    app.MapGet("/", () => Results.Redirect("/app/"))
-        .ExcludeFromDescription();
-    app.MapFallbackToFile("/app/{*path:nonfile}", "app/index.html")
+    // Domain-root SPA: direct hits at / serve React index.html
+    app.MapFallbackToFile("/{*path:nonfile}", "index.html")
         .WithMetadata(FrontendPathBaseRequiredMetadata.Instance);
 }
 

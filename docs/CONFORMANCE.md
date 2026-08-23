@@ -81,6 +81,7 @@ Linked Data Signatures は送受信とも未実装であり、新規送信にも
 | Mastodon | 4.6.2 | 一部成功 | 双方向Discovery/Follow/Accept、公開Create、Followers-only、Mentioned-only、Like/Undo、Announce、peer Delete/Tombstone、signed GET、media、remote media proxy/cache、鍵付きprivate GET | Reject、Undo Follow、Reply、Poll、Block等はblocked。2 CPU上のRails development processが2回無応答になり、DB/Redis/volumeを保持してapp containerだけを再作成 |
 | Misskey | 2026.6.0 | 一部成功、一部失敗 | 双方向Discovery/Follow/Accept、.NETからの公開Create/Announce/media、Mentioned-only、`Like + _misskey_reaction`、reaction置換/Undo | Followers-onlyはpersonal inboxへ202後もNote未保存。Misskey v12 serverの結果ではない |
 | Pleroma | 2.10.0 | 一部成功、一部失敗 | 双方向Discovery/Follow/Accept、公開Create、Followers-only、Announce/media、peer EmojiReact/Undo | Mentioned-onlyはMention tag付きpersonal inboxへ200後もObject未保存。固定imageのUI assetがoffline環境になくAPI/DBでprojectionを検証 |
+| yojo-art | 1.9.0 | Discovery成功、Follow/Accept未試験 | `testtest.exekey.net`から`exekey.net`のWebFinger、Actor、Inbox、sharedInboxをlive取得し、再検索の冪等性を確認 | 認証credentialを使用しなかったためlive Follow/Acceptは未試験。検索からFollow Activity／Delivery生成まではPostgreSQL API統合試験で確認 |
 | Akkoma/LitePub | fixture | fixture成功、実instance未検証 | `EmojiReact`、alias `EmojiReaction`、複数reaction、custom emoji、Undo | capability判定はActor contextの既知語彙に基づく。実instance試験なし |
 | GoToSocial | 未実施 | 未検証 | なし | 実 instance 試験なし |
 | PeerTube | 未実施 | 未検証 | なし | media と Activity の実 instance 試験なし |

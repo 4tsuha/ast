@@ -278,6 +278,7 @@ public sealed class PublicEndpointTests(ActivityPubApiFixture fixture)
         using JsonDocument json = JsonDocument.Parse(body);
         Assert.True(json.RootElement.GetProperty("enabled").GetBoolean());
         Assert.True(json.RootElement.GetProperty("localAccountsEnabled").GetBoolean());
+        Assert.Equal(8, json.RootElement.GetProperty("requiredPasswordLength").GetInt32());
         Assert.Equal("activitypub-web-test", json.RootElement.GetProperty("clientId").GetString());
         Assert.Equal("https://client.local.example", json.RootElement.GetProperty("publicBaseUri").GetString());
         Assert.Equal("https://client.local.example/api/", json.RootElement.GetProperty("apiBaseUri").GetString());

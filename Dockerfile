@@ -3,8 +3,6 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0.302-noble@sha256:72dd743782f2ae7e5476fd64
 WORKDIR /source
 COPY .editorconfig Directory.Build.props Directory.Packages.props global.json LICENSE NOTICE.md ./
 COPY src/ ./src/
-COPY frontend/ActivityPub.Misskey.Blazor/ ./frontend/ActivityPub.Misskey.Blazor/
-COPY frontend/ActivityPub.Misskey.Blazor.Client/ ./frontend/ActivityPub.Misskey.Blazor.Client/
 COPY frontend/misskey-v12/public/static-assets/ ./frontend/misskey-v12/public/static-assets/
 COPY frontend/misskey-v12/public/client-assets/ ./frontend/misskey-v12/public/client-assets/
 RUN dotnet restore src/ActivityPub.Api/ActivityPub.Api.csproj --locked-mode \
@@ -16,9 +14,7 @@ RUN dotnet restore src/ActivityPub.Api/ActivityPub.Api.csproj --locked-mode \
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0.11-noble@sha256:207cc51496778557731c81ff670333d8ade4a4fec22768fd1be8e78474a84ecf AS runtime
 RUN apt-get update \
-    && apt-get install --yes --no-install-recommends \
-       curl=8.5.0-2ubuntu10.11 \
-       ffmpeg=7:6.1.1-3ubuntu5 \
+    && apt-get install --yes --no-install-recommends curl ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=build --chown=$APP_UID:$APP_UID /out/ ./
