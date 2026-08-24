@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { ActionIcon } from "@/components/ui/action-icon"
+import { CustomEmoji, UserAvatar } from "@/components/ui/identity"
 import { Card } from "@/components/ui/card"
 import { misskeyPost } from "@/lib/api"
 import { useEmojis } from "@/features/emojis/useEmojis"
@@ -145,10 +146,7 @@ function ComposerImpl({ onPost, isPosting = false }: ComposerProps) {
   return (
     <Card className="rounded-t-lg border-b-0 alien-card p-4 bg-[#E8F5FD] dark:bg-[#0F1A24] border-[#55ACEE]/20 overflow-hidden">
       <div className="flex gap-3 min-w-0">
-        <Avatar className="w-8 h-8 rounded-full shrink-0">
-          <AvatarImage src="https://api.dicebear.com/7.x/initials/svg?seed=N" />
-          <AvatarFallback>N</AvatarFallback>
-        </Avatar>
+        <UserAvatar className="w-8 h-8 rounded-full shrink-0" fallback="N" name="Naya" />
         <div className="flex-1 min-w-0 overflow-hidden">
           {/* CW input */}
           {cwEnabled && (
@@ -183,14 +181,13 @@ function ComposerImpl({ onPost, isPosting = false }: ComposerProps) {
               <span className="truncate flex-1 min-w-0">
                 {selectedFiles.length} file(s) selected: {selectedFiles.map(f => f.name).join(", ")}
               </span>
-              <button
-                type="button"
+              <ActionIcon
+                icon={X}
+                iconSize={16}
+                label="Remove selected files"
                 onClick={handleRemoveFiles}
-                className="shrink-0 p-1 hover:bg-muted rounded-full"
-                aria-label="Remove selected files"
-              >
-                <X size={14} />
-              </button>
+                className="h-8 w-8 shrink-0 text-muted-foreground hover:bg-muted hover:text-foreground"
+              />
             </div>
           )}
 
@@ -210,47 +207,37 @@ function ComposerImpl({ onPost, isPosting = false }: ComposerProps) {
                 aria-hidden="true"
                 tabIndex={-1}
               />
-              <button
-                type="button"
+              <ActionIcon
+                icon={ImageIcon}
+                label="Attach media"
                 onClick={handleMediaClick}
-                className="p-1.5 hover:bg-[#55ACEE]/10 rounded-full text-[#55ACEE] transition-colors shrink-0"
-                aria-label="Attach media"
                 title="Attach media (stub)"
                 data-testid="composer-media-button"
-              >
-                <ImageIcon size={18} />
-              </button>
+              />
               <div className="relative">
-                <button
-                  type="button"
+                <ActionIcon
+                  icon={Smile}
+                  label="Emoji picker"
                   onClick={() => setEmojiOpen(o => !o)}
-                  className="p-1.5 hover:bg-[#55ACEE]/10 rounded-full text-[#55ACEE] transition-colors shrink-0"
-                  aria-label="Emoji picker"
-                  title="Emoji picker"
                   data-testid="composer-emoji-button"
-                >
-                  <Smile size={18} />
-                </button>
+                />
                 {emojiOpen && (
                   <div className="absolute z-10 mt-1 left-0 w-64 max-h-48 overflow-auto bg-white dark:bg-[#0F1A24] border rounded-lg shadow-lg p-2 grid grid-cols-6 gap-1">
-                    {(emojis as any[]).slice(0, 48).map((e:any) => (
+                    {emojis.slice(0, 48).map((e) => (
                       <button key={e.name} type="button" onClick={()=>{ setText(t=> t + ` :${e.name}: `); setEmojiOpen(false)}} className="p-1 hover:bg-accent rounded" title={`:${e.name}:`}>
-                        <img src={e.url} alt={e.name} className="w-6 h-6" loading="lazy" />
+                        <CustomEmoji name={e.name} src={e.url} className="w-6 h-6" />
                       </button>
                     ))}
-                    {(emojis as any[]).length===0 && <div className="col-span-6 text-xs text-muted-foreground p-2">No custom emojis — add via /emoji</div>}
+                    {emojis.length === 0 && <div className="col-span-6 text-xs text-muted-foreground p-2">No custom emojis — add via /emoji</div>}
                   </div>
                 )}
               </div>
-              <button
-                type="button"
-                className="p-1.5 hover:bg-[#55ACEE]/10 rounded-full text-[#55ACEE] transition-colors shrink-0 opacity-60 cursor-not-allowed"
-                aria-label="Location"
+              <ActionIcon
+                icon={MapPin}
+                label="Location"
                 title="Location (coming soon)"
                 disabled
-              >
-                <MapPin size={18} />
-              </button>
+              />
 
               <span className="hidden sm:inline-flex w-px h-5 bg-[#CCD6DD] dark:bg-[#2A3A4A] mx-1" />
 

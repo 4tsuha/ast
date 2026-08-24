@@ -3,6 +3,12 @@ import { useSessionStore } from "@/lib/sessionStore"
 export const apiBase = "/api"
 export const streamingBase = "/streaming"
 
+// Synchronous mirror of the latest antiforgery token. fetchSession() updates it the
+// moment a session response arrives, so API calls made after a session refetch always
+// use the token paired with the current antiforgery cookie — regardless of React
+// effect ordering (useEffect runs after children mount).
+let lastCsrf: { headerName: string; requestToken: string } | null = null
+
 export async function fetchFrontendConfig() {
   const res = await fetch("/api/frontend/config", { credentials: "include" })
   if (!res.ok) throw new Error("config failed")
@@ -11,16 +17,21 @@ export async function fetchFrontendConfig() {
 export async function fetchSession() {
   const res = await fetch("/api/frontend/session", { credentials: "include" })
   if (!res.ok) return null
-  return res.json()
+  const json = await res.json()
+  if (json?.csrf) {
+    lastCsrf = json.csrf
+    useSessionStore.getState().setSession(json)
+  }
+  return json
 }
 
 function buildCsrfHeaders(): Record<string, string> {
-  const session = useSessionStore.getState().session
   const headers: Record<string, string> = {}
-  if (session?.csrf?.headerName && session?.csrf?.requestToken) {
-    headers[session.csrf.headerName] = session.csrf.requestToken
-    headers["X-CSRF-TOKEN"] = session.csrf.requestToken
-    headers["X-CSRF-Token"] = session.csrf.requestToken
+  if (lastCsrf?.headerName && lastCsrf?.requestToken) {
+    // headerName is already "X-CSRF-TOKEN" from the backend. Adding it more than
+    // once makes fetch join the values with commas, which fails antiforgery
+    // validation (400). Add exactly one header.
+    headers[lastCsrf.headerName] = lastCsrf.requestToken
   }
   headers["X-ActivityPub-Frontend"] = "1"
   return headers

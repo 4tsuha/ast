@@ -9,7 +9,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { useTimeline, useCreateNote, useStreaming, type CreateNoteParams } from "@/features/timeline/useTimeline"
 import { VirtualTimeline } from "@/features/timeline/VirtualTimeline"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { UserAvatar } from "@/components/ui/identity"
 import { Button } from "@/components/ui/button"
 import { SearchPage } from "@/components/SearchPage"
 import { AvatarPicker, useProfileUpdate } from "@/components/AvatarPicker"
@@ -24,12 +24,16 @@ import { NotificationsPage } from "@/components/NotificationsPage"
 const qc = new QueryClient()
 
 function SessionGate({ children }: { children: React.ReactNode }) {
-  const { data, isLoading, error } = useQuery({ queryKey: ["session"], queryFn: fetchSession, retry: false })
+  const { data, isLoading, isFetching, error } = useQuery({ queryKey: ["session"], queryFn: fetchSession, retry: false })
   const setSession = useSessionStore(s => s.setSession)
   useEffect(() => {
     if (data) setSession(data)
   }, [data, setSession])
-  if (isLoading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Loading session…</div>
+  // Hold children until the latest session (and its antiforgery token) has arrived.
+  // After sign-in, invalidateQueries triggers a refetch; mounting children early would
+  // send API calls with the pre-sign-in anonymous token, which fails antiforgery
+  // validation ("different claims-based user").
+  if (isLoading || isFetching) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Loading session…</div>
   if (error) return <div className="min-h-screen flex items-center justify-center text-red-600">Session error</div>
   const authed = (data as any)?.authenticated
   if (!authed) {
@@ -39,7 +43,7 @@ function SessionGate({ children }: { children: React.ReactNode }) {
           <div className="text-3xl font-bold text-[#55ACEE]">twtr.</div>
           <div className="text-sm text-muted-foreground">2014 alien • Sign in to continue</div>
         </div>
-        <SigninForm onSuccess={() => location.reload()} />
+        <SigninForm onSuccess={() => { /* SessionGate refetches /api/frontend/session via invalidate */ }} />
         <div className="mt-4 text-xs text-muted-foreground">Public timeline is available without sign-in via Guest view <a href="/guest" className="text-[#55ACEE] underline">Guest</a></div>
       </div>
     )
@@ -303,7 +307,7 @@ function ProfilePage() {
       <div data-testid="profile-page">
         <div className="h-[200px] bg-gradient-to-r from-[#55ACEE] to-[#00E5CC] alien-header relative" data-testid="profile-header">
           <div className="absolute -bottom-12 left-4 flex items-end gap-4">
-            <Avatar className="w-[100px] h-[100px] rounded-[6px] border-4 border-white dark:border-[#0F1A24] alien-card overflow-hidden bg-white"><AvatarImage src="https://api.dicebear.com/7.x/initials/svg?seed=naya"/><AvatarFallback>N</AvatarFallback></Avatar>
+            <UserAvatar className="w-[100px] h-[100px] rounded-[6px] border-4 border-white dark:border-[#0F1A24] alien-card overflow-hidden bg-white" fallback="N" name="naya1115" />
             <div className="mb-2 flex gap-2">
               <Button variant="outline" className="rounded-full border border-[#55ACEE] bg-white text-[#55ACEE] hover:bg-[#55ACEE] hover:text-white alien-card text-xs h-8" data-testid="edit-profile-button">Edit profile</Button>
               <AvatarPicker onUploaded={async (id)=>{ try{ await updateProfile({avatarId:id}); location.reload()}catch(e:any){alert((e as Error).message)}} } label="Avatar" />
@@ -367,7 +371,7 @@ function ProfilePage() {
   const displayName = (user.name as string) ?? user.username
   const handle = user.username
   const host = user.host ? `@${user.host}` : ""
-  const avatarUrl = (user.avatarUrl as string) ?? `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(handle)}`
+  const avatarUrl = (user.avatarUrl as string) ?? null
   const bannerUrl = user.bannerUrl as string | null
   const description = (user.description as string) ?? "Alien organism profile. 2014 flat meets biolume."
   const followersCount = (user.followersCount as number) ?? 0
@@ -386,10 +390,12 @@ function ProfilePage() {
         }
       >
         <div className="absolute -bottom-12 left-4 flex items-end gap-4">
-          <Avatar className="w-[100px] h-[100px] rounded-[6px] border-4 border-white dark:border-[#0F1A24] alien-card overflow-hidden bg-white">
-            <AvatarImage src={avatarUrl} alt={displayName} />
-            <AvatarFallback>{displayName[0]?.toUpperCase() ?? "U"}</AvatarFallback>
-          </Avatar>
+          <UserAvatar
+            className="w-[100px] h-[100px] rounded-[6px] border-4 border-white dark:border-[#0F1A24] alien-card overflow-hidden bg-white"
+            fallback={displayName[0]?.toUpperCase() ?? "U"}
+            name={displayName}
+            src={avatarUrl}
+          />
           <div className="mb-2 flex gap-2">
             {isSelf ? (
               <>

@@ -3,7 +3,7 @@ import { useSearchParams, Link } from "react-router-dom"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { UserAvatar } from "@/components/ui/identity"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { useUserSearch, useHashtagSearch } from "@/features/search/useSearch"
 
@@ -30,7 +30,7 @@ export function SearchPage() {
           {users.isLoading ? <div className="p-4 text-muted-foreground">Loading…</div> :
            users.data?.length ? <div className="divide-y border rounded-lg bg-white dark:bg-[#0F1A24]">{users.data.map((u:any)=>
              <Link key={u.id} to={`/profile/${u.id}`} className="flex items-center gap-3 p-3 hover:bg-accent/50">
-               <Avatar className="w-10 h-10"><AvatarImage src={u.avatarUrl} /><AvatarFallback>{u.username?.[0]}</AvatarFallback></Avatar>
+               <UserAvatar className="w-10 h-10" fallback={u.username?.[0]} name={u.name || u.username} src={u.avatarUrl} />
                <div><div className="font-bold text-sm">{u.name || u.username}</div><div className="text-xs text-muted-foreground">@{u.username}{u.host?`@${u.host}`:""}</div></div>
              </Link>
            )}</div> : <div className="p-8 text-center text-muted-foreground">No users found</div>}

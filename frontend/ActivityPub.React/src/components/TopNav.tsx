@@ -1,6 +1,6 @@
 import { Search, Bell, Home, User, Feather, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { UserAvatar } from "@/components/ui/identity"
 import { useNotifications } from "@/features/notifications/useNotifications"
 import { useSessionStore } from "@/lib/sessionStore"
 import { useCallback } from "react"
@@ -123,10 +123,11 @@ export function TopNav() {
           <Button className="rounded-full bg-[#55ACEE] hover:bg-[#2795E9] text-white font-bold px-5 h-8 alien-card">
             <Feather size={14} /> Tweet
           </Button>
-          <Avatar className="w-8 h-8">
-            <AvatarImage src="https://api.dicebear.com/7.x/initials/svg?seed=N" />
-            <AvatarFallback>N</AvatarFallback>
-          </Avatar>
+          <UserAvatar
+            className="w-8 h-8"
+            fallback={session?.viewer?.username?.charAt(0).toUpperCase() || "N"}
+            name={session?.viewer?.username || "Naya"}
+          />
           {isAuthed ? (
             <Button
               variant="ghost"

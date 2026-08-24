@@ -1489,12 +1489,16 @@ internal static class FrontendEndpoints
 
     private static async Task<IResult> FrontendSession(HttpContext context, IAntiforgery antiforgery)
     {
-        AntiforgeryTokenSet tokens = antiforgery.GetAndStoreTokens(context);
         context.Response.Headers.CacheControl = "no-store";
         context.Response.Headers.Vary = "Cookie";
 
         var auth = await context.AuthenticateAsync(OAuthAuthorizationServerExtensions.ExternalSessionScheme).ConfigureAwait(false);
         ClaimsPrincipal principal = auth.Succeeded && auth.Principal is not null ? auth.Principal : context.User;
+        // GetAndStoreTokens binds the antiforgery token to context.User. Bind it to the
+        // externally-authenticated principal so the issued token passes validation for the
+        // signed-in user instead of failing with "different claims-based user".
+        context.User = principal;
+        AntiforgeryTokenSet tokens = antiforgery.GetAndStoreTokens(context);
         if (principal.Identity?.IsAuthenticated != true)
         {
             return Results.Json(new

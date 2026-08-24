@@ -1,6 +1,7 @@
 import { memo, useCallback, useMemo, useState } from "react"
 import { useEmojis } from "@/features/emojis/useEmojis"
 import { Button } from "@/components/ui/button"
+import { CustomEmoji } from "@/components/ui/identity"
 import { cn } from "@/lib/utils"
 
 type MfmViewProps = {
@@ -74,7 +75,7 @@ function renderTokens(tokens: Token[], disableLinks: boolean, emojiMap: Map<stri
     if (tok.type === "emoji") {
       const url = emojiMap.get(tok.name)
       if (url) {
-        return <img key={i} src={url} alt={tok.value} title={tok.value} className="inline h-5 w-5 align-text-bottom" loading="lazy" data-testid="custom-emoji" />
+        return <CustomEmoji key={i} name={tok.name} src={url} className="h-5 w-5 align-text-bottom" />
       }
       return <span key={i}>{tok.value}</span>
     }

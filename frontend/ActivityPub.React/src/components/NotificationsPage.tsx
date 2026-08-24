@@ -1,7 +1,7 @@
 import { useNotifications, useReadNotifications, type MisskeyNotification } from "@/features/notifications/useNotifications"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+import { UserAvatar } from "@/components/ui/identity"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Bell, Heart, Repeat2, AtSign, UserPlus } from "lucide-react"
 
@@ -62,7 +62,6 @@ function notificationText(n: MisskeyNotification): string {
 }
 
 function NotificationRow({ n }: { n: MisskeyNotification }) {
-  const avatar = n.user?.avatarUrl ?? `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(n.user?.username ?? "unknown")}`
   const name = n.user?.name ?? n.user?.username ?? "Unknown"
   const handle = n.user?.username ? `@${n.user.username}${n.user.host ? `@${n.user.host}` : ""}` : ""
   return (
@@ -73,10 +72,12 @@ function NotificationRow({ n }: { n: MisskeyNotification }) {
       data-notification-type={n.type}
     >
       <div className="relative shrink-0">
-        <Avatar className="w-10 h-10 rounded-[12px_6px_16px_6px]">
-          <AvatarImage src={avatar} alt={name} />
-          <AvatarFallback>{(name[0] ?? "U").toUpperCase()}</AvatarFallback>
-        </Avatar>
+        <UserAvatar
+          className="w-10 h-10 rounded-[12px_6px_16px_6px]"
+          fallback={(name[0] ?? "U").toUpperCase()}
+          name={name}
+          src={n.user?.avatarUrl}
+        />
         <div className="absolute -bottom-1 -right-1">
           <NotificationIcon type={n.type} />
         </div>

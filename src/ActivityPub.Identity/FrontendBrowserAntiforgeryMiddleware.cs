@@ -14,8 +14,9 @@ public sealed class FrontendBrowserAntiforgeryMiddleware(RequestDelegate next)
             {
                 await antiforgery.ValidateRequestAsync(context).ConfigureAwait(false);
             }
-            catch (AntiforgeryValidationException)
+            catch (AntiforgeryValidationException exception)
             {
+                Console.WriteLine($"[Antiforgery] {exception.Message}");
                 context.Response.StatusCode = StatusCodes.Status400BadRequest;
                 context.Response.ContentType = "application/problem+json";
                 context.Response.Headers.CacheControl = "no-store";

@@ -14,7 +14,6 @@
     <Project Path="src/ActivityPub.Workers/ActivityPub.Workers.csproj" />
   </Folder>
   <Folder Name="/frontend/">
-    <Project Path="frontend/ActivityPub.React/package.json" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/ActivityPub.Domain.Tests/ActivityPub.Domain.Tests.csproj" />

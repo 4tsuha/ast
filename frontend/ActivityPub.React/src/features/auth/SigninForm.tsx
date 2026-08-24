@@ -30,12 +30,11 @@ export function SigninForm({ onSuccess }: { onSuccess?: () => void }) {
       let json: any = null
       try { json = JSON.parse(text) } catch {}
       if (res.ok) {
-        // backend returns {status:"succeeded"} for frontend, or {id,i} for native - both set cookie
+        // backend returns {status:"succeeded"} for frontend, or {id,i} for native - both set cookie.
+        // Invalidate so SessionGate refetches /api/frontend/session exactly once and stores
+        // the fresh antiforgery token. Do NOT fetch session again here: each GET session call
+        // rotates the antiforgery cookie, which can desync tokens from concurrent API calls.
         qc.invalidateQueries({ queryKey: ["session"] })
-        // refresh session store
-        const sRes = await fetch("/api/frontend/session", { credentials: "include" })
-        const sJson = await sRes.json()
-        useSessionStore.getState().setSession(sJson)
         onSuccess?.()
         return
       }
@@ -69,7 +68,7 @@ export function SigninForm({ onSuccess }: { onSuccess?: () => void }) {
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" value={password} onChange={e=>setPassword(e.target.value)} required minLength={12} maxLength={1024} autoComplete="new-password" />
+            <Input id="password" type="password" value={password} onChange={e=>setPassword(e.target.value)} required minLength={12} maxLength={1024} autoComplete="current-password" />
           </div>
           {need2fa && (
             <div className="space-y-2">

@@ -1,5 +1,5 @@
 import { Heart, MessageCircle, Repeat2, Share } from "lucide-react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { UserAvatar } from "@/components/ui/identity"
 import { Card } from "@/components/ui/card"
 import { MfmView } from "@/components/MfmView"
 import { useLike, useRenote } from "@/features/notes/useNoteInteractions"
@@ -152,10 +152,12 @@ export function TweetCard({
       data-testid="tweet-card"
       data-note-id={resolvedId}
     >
-      <Avatar className="w-12 h-12 rounded-[12px_6px_16px_6px] shrink-0">
-        <AvatarImage src={tweet.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${tweet.handle}`} />
-        <AvatarFallback>{tweet.handle[0]}</AvatarFallback>
-      </Avatar>
+      <UserAvatar
+        className="w-12 h-12 rounded-[12px_6px_16px_6px] shrink-0"
+        fallback={tweet.handle.charAt(0).toUpperCase() || "?"}
+        name={tweet.name || tweet.handle}
+        src={tweet.avatar}
+      />
       <div className="flex-1 min-w-0">
         {pinned && (
           <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
