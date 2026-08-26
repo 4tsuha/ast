@@ -71,11 +71,11 @@
       },
       "StackExchange.Redis": {
         "type": "Direct",
-        "requested": "[3.1.3, )",
-        "resolved": "3.1.3",
-        "contentHash": "6m3ca55rhCgR65y7xlCxXQE1CnMdfAuLQRzv8kveSmqIYxByZlHNQM5MBEFMigNNvsgGq2WG7T+oNyOaZ9/VzA==",
+        "requested": "[3.1.31, )",
+        "resolved": "3.1.31",
+        "contentHash": "QillloeZxgw9+IWmnowTrjrn+JV7JIMVzr1JiUpCa7pJQI48rtcqG9yy6u5UBRiTuCiKU5909aRu67Ch6gWVMg==",
         "dependencies": {
-          "RESPite": "3.1.3",
+          "RESPite": "3.1.31",
           "System.IO.Hashing": "10.0.5"
         }
       },
@@ -373,8 +373,8 @@
       },
       "RESPite": {
         "type": "Transitive",
-        "resolved": "3.1.3",
-        "contentHash": "E/XxKN+lr/lcd2IWnWg/PQyToIi2k4pG8GtJrs0UlbmjWAm1VO2sRTZJqKuyJk7TQk/hnllwa1XYfchIcGqKTg=="
+        "resolved": "3.1.31",
+        "contentHash": "u+MFK6FzGWngKaY3wJ/V9vQSVe/NSqpk0IYYw6ACwmlPq5eTnsyZGlzEa3YMifJGVs3omrl5MkgigB1jZYNnGg=="
       },
       "System.CodeDom": {
         "type": "Transitive",
