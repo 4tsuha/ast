@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.7
-FROM mcr.microsoft.com/dotnet/sdk:10.0.302-noble@sha256:72dd743782f2ae7e5476fd64f6a460045e3998dc862218b80e6944cba79a01b0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0.401-noble@sha256:096ca98743616ccfa14dccaa2a86615fd7345bd0c4535445226e98dbd46af2b5 AS build
 WORKDIR /source
 COPY .editorconfig Directory.Build.props Directory.Packages.props global.json LICENSE NOTICE.md ./
 COPY src/ ./src/
