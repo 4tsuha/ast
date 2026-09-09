@@ -12,7 +12,7 @@ RUN dotnet restore src/ActivityPub.Api/ActivityPub.Api.csproj --locked-mode \
        --output /out \
        --property:UseAppHost=false
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0.11-noble@sha256:207cc51496778557731c81ff670333d8ade4a4fec22768fd1be8e78474a84ecf AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0.12-noble@sha256:3a494b8a73ec3248c237c9438592ff1e04587edf65863212bc1027e54dcb6f36 AS runtime
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends curl ffmpeg \
     && rm -rf /var/lib/apt/lists/*
